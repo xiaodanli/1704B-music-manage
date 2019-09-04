@@ -2,13 +2,11 @@
  * @Author: 李晓丹 
  * @Date: 2019-09-03 16:30:09 
  * @Last Modified by: 李晓丹
- * @Last Modified time: 2019-09-04 10:37:25
+ * @Last Modified time: 2019-09-04 10:53:22
  */
 
 import axios from 'axios'
 import router from '@/router/index'
-
-console.log(router);
 
 var instance = axios.create(); //创建axios的实例  
 // 全局拦截
@@ -32,7 +30,6 @@ instance.interceptors.request.use(function (config) {
 
 // 添加响应拦截器
 instance.interceptors.response.use(function (response) {
-    console.log("=====response====",response);
     // 对响应数据做点什么
     return response
   }, function (error) {

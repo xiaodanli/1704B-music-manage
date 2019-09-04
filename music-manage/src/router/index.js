@@ -4,7 +4,7 @@ import routes from './routes'
 
 Vue.use(Router)
 
-export default new Router({
+const router = new Router({
   mode: 'history',
   base: process.env.BASE_URL,
   routes
@@ -12,3 +12,20 @@ export default new Router({
 
 
 // 全局路由守卫
+
+let protect = ['/music'];
+
+router.beforeEach((to,from,next) => {
+    if(protect.includes(to.path)){
+        let token = localStorage.getItem('token');
+        if(token){
+            next()
+        }else{
+            next('/login')
+        }
+    }else{
+        next()
+    }
+})
+
+export default router
