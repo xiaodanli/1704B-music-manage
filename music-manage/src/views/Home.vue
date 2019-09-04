@@ -21,6 +21,10 @@ export default {
     this.$api.user.login({username:'lixd67',password:'123456'}).then(res=>{
         console.log(res)
     })
+
+    // this.$router.push()  //路由实例
+
+    console.log(this.$router)
   }
 }
 </script>
