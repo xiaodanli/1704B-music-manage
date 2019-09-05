@@ -9,7 +9,7 @@
         <el-container>
             <el-aside width="200px">Aside</el-aside>
             <el-main>
-                <el-button>添加</el-button>
+                <el-button @click="open">添加</el-button>
                 <!-- 音乐列表的表格 -->
                 <el-table
                     :data="musicList"
@@ -49,10 +49,19 @@
                         <el-button
                         size="mini"
                         type="danger"
+                        @click="del(scope.row.id)"
                         >删除</el-button>
                     </template>
                     </el-table-column>
                 </el-table>
+                <el-pagination
+                    background
+                    layout="prev, pager, next"
+                    :total="total"
+                    :page-size="limit"
+                    @current-change="pageChange"
+                    >
+                </el-pagination>
                 <!-- 音乐列表的表格 -->
 
                 <!-- 添加弹窗开始 -->
@@ -60,22 +69,25 @@
                     title="提示"
                     :visible.sync="dialogVisible"
                     width="30%">
-                    
-                    <el-form  ref="ruleForm" label-width="100px"  class="demo-ruleForm m-form">
-                        <el-form-item label="歌名" prop="username">
-                            <el-input ></el-input>
+                    <el-form :model="music"  ref="ruleForm" label-width="100px"  class="demo-ruleForm m-form">
+                        <el-form-item label="歌名" prop="music_name">
+                            <el-input type="text" v-model="music.music_name"></el-input>
                         </el-form-item>
-                        <el-form-item label="歌手" prop="pass">
-                            <el-input type="password" autocomplete="off"></el-input>
+                        <el-form-item label="歌手" prop="singer_name">
+                            <el-input type="text" autocomplete="off" v-model="music.singer_name"></el-input>
                         </el-form-item>
                         <el-form-item label="上传图片" prop="pass">
-                            <el-input type="password" autocomplete="off"></el-input>
+                            <input type="file" @change="upload">
+                            <img :src="music.pic" alt="" class="m-img">
                         </el-form-item>
                         <el-form-item label="是否上架" prop="pass">
-                            <el-input type="password" autocomplete="off"></el-input>
+                            <el-radio-group v-model="music.isup">
+                                <el-radio label="1">是</el-radio>
+                                <el-radio label="0">否</el-radio>
+                            </el-radio-group>
                         </el-form-item>
                         <el-form-item>
-                            <el-button type="primary">添加</el-button>
+                            <el-button type="primary" @click="add">添加</el-button>
                         </el-form-item>
                     </el-form>
                 </el-dialog>
@@ -90,7 +102,16 @@ export default {
     data(){
         return {
             musicList: [],      //音乐列表数据
-            dialogVisible:true  //控制弹窗的显示隐藏
+            dialogVisible:false,  //控制弹窗的显示隐藏
+            music:{
+                music_name:'',
+                singer_name:'',
+                pic:'',
+                isup:'1'
+            },
+            limit:2, //每页展示的条数
+            pagenum:1, //当前页数
+            total:0
         }
     },
     created(){
@@ -101,15 +122,19 @@ export default {
             }
         })
         //获取音乐列表
-        this.$api.music.querymusic({pagenum:1,limit:2}).then(res => {
-            console.log(res);
-            if(res.data.code === 1){
-                this.musicList = res.data.data;
-            }
-        })
+       this.getMusicList()
     },
     methods:{
         ...mapMutations(['setName']),
+        getMusicList(){
+             this.$api.music.querymusic({pagenum:this.pagenum,limit:this.limit}).then(res => {
+                console.log(res);
+                if(res.data.code === 1){
+                    this.musicList = res.data.data;
+                    this.total = res.data.total;
+                }
+            })
+        },
         quit(){
             this.$confirm('确认退出吗？', '提示', {
                 confirmButtonText: '确定',
@@ -120,6 +145,56 @@ export default {
                 //2.跳登录路由
                 localStorage.removeItem('token');
                 this.$router.push('/login')
+            })
+        },
+        // 上传图片
+        upload(e){
+            let file = e.target.files[0];
+            //1、新建formdata的实例
+            let formdata = new FormData();
+            //2.添加参数
+            formdata.append('file',file)
+            //3.请求上传图片的接口
+            this.$api.music.upload(formdata).then(res => {
+                console.log(res)
+                if(res.data.code === 1){
+                    this.music.pic = 'http://localhost:3000'+res.data.url
+                }
+            })
+        },
+        // 打开弹窗
+        open(){
+            this.dialogVisible = true;
+        },
+        // 添加音乐
+        add(){
+            this.$api.music.add(this.music).then(res => {
+                if(res.data.code === 1){
+                    this.dialogVisible = false;
+                    this.$message({
+                        message: '添加成功',
+                        type: 'success'
+                    });
+                    this.getMusicList()
+                }
+            })
+        },
+        // 改变页数
+        pageChange(val){
+            this.pagenum = val;
+            this.getMusicList();
+        },
+        // 删除
+        del(id){
+            this.$api.music.del({id}).then(res => {
+                console.log(res)
+                if(res.data.code === 1){
+                    this.$message({
+                        message: '删除成功',
+                        type: 'success'
+                    });
+                    this.getMusicList();
+                }
             })
         }
     },
