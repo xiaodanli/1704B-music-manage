@@ -45,6 +45,7 @@
                     <template slot-scope="scope">
                         <el-button
                         size="mini"
+                        @click="edit(scope.row.id)"
                         >修改</el-button>
                         <el-button
                         size="mini"
@@ -77,7 +78,7 @@
                             <el-input type="text" autocomplete="off" v-model="music.singer_name"></el-input>
                         </el-form-item>
                         <el-form-item label="上传图片" prop="pass">
-                            <input type="file" @change="upload">
+                            <input type="file" @change="upload" ref="file">
                             <img :src="music.pic" alt="" class="m-img">
                         </el-form-item>
                         <el-form-item label="是否上架" prop="pass">
@@ -87,7 +88,7 @@
                             </el-radio-group>
                         </el-form-item>
                         <el-form-item>
-                            <el-button type="primary" @click="add">添加</el-button>
+                            <el-button type="primary" @click="operate">{{editId?'修改':'添加'}}</el-button>
                         </el-form-item>
                     </el-form>
                 </el-dialog>
@@ -111,7 +112,8 @@ export default {
             },
             limit:2, //每页展示的条数
             pagenum:1, //当前页数
-            total:0
+            total:0,
+            editId:''  //修改对象的id
         }
     },
     created(){
@@ -153,21 +155,45 @@ export default {
             //1、新建formdata的实例
             let formdata = new FormData();
             //2.添加参数
-            formdata.append('file',file)
+            formdata.append('file',file);
+
             //3.请求上传图片的接口
             this.$api.music.upload(formdata).then(res => {
                 console.log(res)
                 if(res.data.code === 1){
-                    this.music.pic = 'http://localhost:3000'+res.data.url
+                    this.music.pic = 'http://localhost:3000'+res.data.url;
+                    // e.target
                 }
             })
         },
         // 打开弹窗
         open(){
+            this.reset();
             this.dialogVisible = true;
+            if(this.$refs.file && this.$refs.file.files.length){
+                this.$refs.file.value="";
+            }
         },
-        // 添加音乐
-        add(){
+        // 添加音乐  修改
+        operate(){
+            if(this.editId){
+                //修改
+                this.editMusic();
+            }else{
+               this.addMusic();
+            }
+        },
+        // 修改音乐
+        editMusic(){
+            this.$api.music.update(Object.assign({},this.music,{id:this.editId})).then(res => {
+                if(res.data.code === 1){
+                    this.dialogVisible = false;
+                    this.getMusicList();
+                }
+            })
+        },
+        //添加音乐接口
+        addMusic(){
             this.$api.music.add(this.music).then(res => {
                 if(res.data.code === 1){
                     this.dialogVisible = false;
@@ -187,15 +213,34 @@ export default {
         // 删除
         del(id){
             this.$api.music.del({id}).then(res => {
-                console.log(res)
                 if(res.data.code === 1){
                     this.$message({
                         message: '删除成功',
                         type: 'success'
                     });
+                    // pagenum === 1 不--
+                    this.musicList.length <= 1 && this.pagenum > 1 ? --this.pagenum : this.pagenum;
                     this.getMusicList();
                 }
             })
+        },
+        //重置
+        reset(){
+            this.music.music_name="";
+            this.music.singer_name="";
+            this.music.pic="";
+            this.music.isup="1";
+            this.editId = '';
+        },
+        // 编辑
+        edit(id){
+            this.dialogVisible = true;
+            this.editId = id;
+            let editObj = this.musicList.find(item => item.id === id);
+            this.music.music_name = editObj.music_name;
+            this.music.singer_name = editObj.singer_name;
+            this.music.isup = editObj.isup;
+            this.music.pic = editObj.pic;
         }
     },
     computed:{
